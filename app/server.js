@@ -1,7 +1,7 @@
 let axios = require("axios");
 let express = require("express");
 let app = express();
-let port = 8888;
+let port = process.env.PORT || 8888;
 let hostname = "localhost";
 
 //Middleware
@@ -31,11 +31,6 @@ var musicID = ""
 
 var TMtimeoutCounter = 5;
 
-var client_id = env.client_id; // Your client id
-var client_secret = env.client_secret; // Your secret
-var redirect_uri = env.redirect_uri; // Your redirect uri
-var ticketmasterAPIkey = env.ticketmaster_api_key //project ticketmaster API key
-
 /**
 * Generates a random string containing numbers and letters
 * @param  {number} length The length of the string
@@ -64,9 +59,9 @@ app.get('/login', function(req, res) {
 	res.redirect('https://accounts.spotify.com/authorize?' +
 	querystring.stringify({
 		response_type: 'code',
-		client_id: client_id,
+		client_id: process.env.CLIENT_ID,
 		scope: scope,
-		redirect_uri: redirect_uri,
+		redirect_uri: process.env.REDIRECT_URI,
 		state: state
 	}));
 });
@@ -89,11 +84,11 @@ app.get('/callback', function(req, res) {
 		url: 'https://accounts.spotify.com/api/token',
 		form: {
 		code: code,
-		redirect_uri: redirect_uri,
+		redirect_uri: process.env.REDIRECT_URI,
 		grant_type: 'authorization_code'
 		},
 		headers: {
-		'Authorization': 'Basic ' + (new Buffer(client_id + ':' + client_secret).toString('base64'))
+		'Authorization': 'Basic ' + (new Buffer(process.env.CLIENT_ID + ':' + process.env.CLIENT_SECRET).toString('base64'))
 		},
 		json: true
 	};
@@ -141,7 +136,7 @@ app.get('/refresh_token', function(req, res) {
 	var refresh_token = req.query.refresh_token;
 	var authOptions = {
 	url: 'https://accounts.spotify.com/api/token',
-	headers: { 'Authorization': 'Basic ' + (new Buffer(client_id + ':' + client_secret).toString('base64')) },
+	headers: { 'Authorization': 'Basic ' + (new Buffer(process.env.CLIENT_ID + ':' + process.env.CLIENT_SECRET).toString('base64')) },
 	form: {
 		grant_type: 'refresh_token',
 		refresh_token: refresh_token
@@ -183,7 +178,7 @@ app.get("/artists", async (req, res) => {
 app.get("/artistSearchTicketMaster", async (req, res) => {
   var config = {
     method: 'get',
-    url: `https://app.ticketmaster.com/discovery/v2/attractions.json?classificationName=music&apikey=${ticketmasterAPIkey}&keyword=${req.query.artist}&size=10`,
+    url: `https://app.ticketmaster.com/discovery/v2/attractions.json?classificationName=music&apikey=${process.env.TICKETMASTERAPIKEY}&keyword=${req.query.artist}&size=10`,
     headers: { 
       'Content-Type': 'application/json'
     }
@@ -216,12 +211,8 @@ app.get("/artistSearchSpotify", async (req, res) => {
 });
 
 app.get("/tmGenres", async (req, res) => {
-	// let musicID = "KZFzniwnSyZfZ7v7nJ" //TODO: implement a classification getter so we always have the most up-to-date ID. use the below comment code outside of any function in this file to accomlish this on a time-based methodology:
-	// console.log(Date.now());
-	// setInterval(function() {
-	// 	console.log(Date.now());
-	// }, 1800000); //1800000 is every 30 min
-	let url = `https://app.ticketmaster.com/discovery/v2/classifications/${musicID}.json?apikey=${ticketmasterAPIkey}`
+	let musicID = "KZFzniwnSyZfZ7v7nJ" //TODO: implement a classification getter so we always have the most up-to-date ID
+	let url = `https://app.ticketmaster.com/discovery/v2/classifications/${musicID}.json?apikey=${process.env.TICKETMASTERAPIKEY}`
 	axios(url)
 	.then(response => {
 		// console.log(response.data);
@@ -271,7 +262,7 @@ app.post('/tmEvents', async (req, res) => {//find query parameters here: https:/
 	}
 	console.log(combinedGenres);
 
-	let urlBase = `https://app.ticketmaster.com/discovery/v2/events.json?&apikey=${ticketmasterAPIkey}&locale=${locale}`
+	let urlBase = `https://app.ticketmaster.com/discovery/v2/events.json?&apikey=${process.env.TICKETMASTERAPIKEY}&locale=${locale}`
 	let countryCodeQueryParam = "&countryCode=US"
 	let cityQueryParam = `&city=${city}`
 	let stateQueryParam = `&stateCode=${state}`
@@ -363,7 +354,7 @@ app.post('/tmEvents', async (req, res) => {//find query parameters here: https:/
 app.get("/spotifyArtistEvents", async (req, res) => {
 	let artist = req.query.artist;
 	let size = 200;
-	let baseURL = `https://app.ticketmaster.com/discovery/v2/events.json?classificationName=music&countryCode=US&size=${size}&keyword=${artist}&apikey=${ticketmasterAPIkey}`;
+	let baseURL = `https://app.ticketmaster.com/discovery/v2/events.json?classificationName=music&countryCode=US&size=${size}&keyword=${artist}&apikey=${process.env.TICKETMASTERAPIKEY}`;
 	console.log(baseURL);
 	axios(baseURL).then(response => {
 		res.json(response.data)
@@ -381,7 +372,7 @@ app.get("/spotifyGenreEvents", async (req, res) => {
 		baseURL += `${id},`;
 	}
 	baseURL = baseURL.substring(0, baseURL.length - 1);
-	baseURL += `&apikey=${ticketmasterAPIkey}`;
+	baseURL += `&apikey=${process.env.TICKETMASTERAPIKEY}`;
 	axios(baseURL).then(response => {
 		res.json(response.data)
 	})
@@ -400,7 +391,7 @@ app.get("/", (req, res) => {
 app.get("/hotelCoordinates", (req, res) => {
 	const hotelCoordConfig = {
 		headers: {
-			'X-Api-Key': env["geocoding_key"]
+			'X-Api-Key': process.env.GEOCODING_KEY
 		}
 	}
 
@@ -417,7 +408,7 @@ app.get("/hotelRegion", (req, res) => {
             locale: "en_US"
         }, 
         headers: {
-            "X-RapidAPI-Key": env["hotels_api_key"],
+            "X-RapidAPI-Key": process.env.HOTELS_API_KEY,
             "X-RapidAPI-Host": "hotels-com-provider.p.rapidapi.com"
         }
     }
@@ -439,7 +430,7 @@ app.get("/hotels", (req, res) => {
             adults_number: "2"
         },
         headers: {
-            "X-RapidAPI-Key": env["hotels_api_key"],
+            "X-RapidAPI-Key": process.env.HOTELS_API_KEY,
             "X-RapidAPI-Host": "hotels-com-provider.p.rapidapi.com"
         }
     }
@@ -447,6 +438,10 @@ app.get("/hotels", (req, res) => {
     axios.get('https://hotels-com-provider.p.rapidapi.com/v2/hotels/search', hotelConfig)
         .then((response) => { res.json(response.data); })
         .catch((error) => { console.log(error); });
+});
+
+app.listen(port, () => {
+    console.log(`Server is listening on: ${port}`);
 });
 
 app.get("/hotelDetails", (req, res) => {
@@ -467,10 +462,6 @@ app.get("/hotelDetails", (req, res) => {
         .catch((error) => { console.log(error); });
 })
 
-app.listen(port, hostname, () => {
-    console.log(`http://${hostname}:${port}`);
-});
-
 //backgrounded worker periodic information fetching services
 setInterval(function() {
 	getMusicClassificationId();
@@ -483,7 +474,7 @@ getMusicClassificationId()
 // }, 1000);
 
 function getMusicClassificationId() {
-	let url = `https://app.ticketmaster.com/discovery/v2/classifications.json?apikey=${ticketmasterAPIkey}`
+	let url = `https://app.ticketmaster.com/discovery/v2/classifications.json?apikey=${process.env.TICKETMASTERAPIKEY}`
 	axios(url)
 	.then(response => {
 		musicID = response.data._embedded.classifications[2].segment.id;
